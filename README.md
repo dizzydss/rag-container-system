@@ -15,6 +15,36 @@ The system consists of two main components running in Docker containers:
 
 The LLM itself is run on the **host machine** via `llama.cpp` (or similar OpenAI-compatible servers) to leverage host hardware (GPU/CPU) efficiently. The `rag-app` container communicates with the host using `host.docker.internal`.
 
+## Zed Integration (via `rag-proxy`)
+
+To use this system directly within the Zed editor's Assistant Panel, we use a dedicated proxy server (`rag-proxy`). This allows Zed to interact with the RAG system as if it were a standard OpenAI-compatible API.
+
+### How it works
+
+The `rag-proxy` acts as an intelligent middleman between Zed and the backend components:
+
+1.  **Intercept**: Zed sends a standard OpenAI-format chat completion request to the `rag-proxy` (running on port `8001`).
+2.  **Retrieve**: The proxy intercepts the user's prompt and queries the `rag-app` (via the `/query` endpoint) to retrieve relevant context from the vector database.
+3.  **Augment**: The proxy enriches the original prompt by prepending the retrieved context.
+4.  **Generate**: The augmented prompt is then sent to the LLM (running on the host machine) to generate a response that incorporates your private documents.
+5.  **Respond**: The proxy formats the final answer into a strictly compliant OpenAI-style JSON response and returns it to Zed.
+
+### Configuration
+
+To connect Zed to your local RAG system, update your Zed `settings.json` with the following configuration:
+
+```json
+{
+  "language_models": {
+    "openai": {
+      "api_url": "http://localhost:8001/v1"
+    }
+  }
+}
+```
+
+Once configured, you can ask questions in the Zed Assistant Panel that leverage the knowledge contained within your ingested documents.
+
 ## Prerequisites
 
 *   [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
